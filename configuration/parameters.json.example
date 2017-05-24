@@ -1,10 +1,14 @@
 {
-  "soap.host": "localhost",
-  "soap.user": "user@soap.local",
-  "soap.password": "password",
-  "db.host": "localhost",
-  "db.port": 3306,
-  "db.name": "db",
-  "db.user": "user",
-  "db.password": "password"
+  "soap": {
+    "host": "localhost",
+    "user": "user@soap.local",
+    "password": "password"
+  },
+  "db": {
+    "host": "localhost",
+    "port": 3306,
+    "name": "db",
+    "user": "user",
+    "password": "password"
+  }
 }
