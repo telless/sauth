@@ -34,11 +34,7 @@ func main() {
 	utils.CheckError(err)
 
 	validationResponse := wsoResponse.Return_.AccessTokenValidationResponse
-	if validationResponse.ErrorMsg != "" {
-		println(generateErrorJson(validationResponse))
-	} else {
-		println(generateSuccessJson(validationResponse))
-	}
+	println(generateJsonResponse(validationResponse))
 }
 
 func getToken() (string, error) {
@@ -59,18 +55,24 @@ func setLogFile() error {
 	return nil
 }
 
-func generateErrorJson(dto *soapservice.OAuth2TokenValidationResponseDTO) string {
-	errorResponse := response.NewErrorResponse("fail", dto.ErrorMsg)
+func generateJsonResponse(dto *soapservice.OAuth2TokenValidationResponseDTO) string {
+	if dto.ErrorMsg != "" {
+		return generateErrorJson(dto.ErrorMsg)
+	} else {
+		user := models.GetUserByWSOLogin(dto.AuthorizedUser)
+		if user.Name == "" {
+			return generateErrorJson(dto.AuthorizedUser + " not found")
+		}
+		return generateSuccessJson(user)
+	}
+}
+
+func generateErrorJson(errorMsg string) string {
+	errorResponse := response.NewErrorResponse("fail", errorMsg)
 	return errorResponse.Serialize()
 }
 
-func generateSuccessJson(dto *soapservice.OAuth2TokenValidationResponseDTO) string {
-	user := models.GetUserByWSOLogin(dto.AuthorizedUser)
-	if user.Name == "" {
-		errorResponse := response.NewErrorResponse("fail", dto.AuthorizedUser+" not found")
-		return errorResponse.Serialize()
-	}
-
+func generateSuccessJson(user models.User) string {
 	successResponse := response.NewSuccessResponse("success", user)
 	return successResponse.Serialize()
 }
