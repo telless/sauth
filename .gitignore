@@ -1,2 +1,3 @@
 configuration/parameters.json
 logs/*.log
+*.bin

@@ -18,6 +18,9 @@ func OpenConnection(config configuration.DBConfig) {
 }
 
 func GetConnection() *sql.DB {
+	if connection == nil {
+		OpenConnection(configuration.GetConfig().DB)
+	}
 	return connection
 }
 

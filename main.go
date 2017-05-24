@@ -9,6 +9,8 @@ import (
 	"encoding/xml"
 	"os"
 	"log"
+	"sauth/response"
+	"sauth/models"
 )
 
 func main() {
@@ -27,11 +29,11 @@ func main() {
 				XMLName:    xml.Name{},
 				Identifier: token,
 				TokenType:  "bearer"}}}
-	response := soapservice.FindOAuthConsumerIfTokenIsValidResponse{}
-	err = soapClient.Call("FindOAuthConsumerIfTokenIsValid", &request, &response)
+	wsoResponse := soapservice.FindOAuthConsumerIfTokenIsValidResponse{}
+	err = soapClient.Call("FindOAuthConsumerIfTokenIsValid", &request, &wsoResponse)
 	utils.CheckError(err)
 
-	validationResponse := response.Return_.AccessTokenValidationResponse
+	validationResponse := wsoResponse.Return_.AccessTokenValidationResponse
 	if validationResponse.ErrorMsg != "" {
 		println(generateErrorJson(validationResponse))
 	} else {
@@ -53,15 +55,22 @@ func setLogFile() error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 	log.SetOutput(f)
 	return nil
 }
 
 func generateErrorJson(dto *soapservice.OAuth2TokenValidationResponseDTO) string {
-	return "{\"status\":\"fail\", \"message\":" + dto.ErrorMsg + "\"}"
+	errorResponse := response.NewErrorResponse("fail", dto.ErrorMsg)
+	return errorResponse.Serialize()
 }
 
 func generateSuccessJson(dto *soapservice.OAuth2TokenValidationResponseDTO) string {
-	return "{\"status\":\"success\", \"message\":" + dto.AuthorizedUser + "\"}"
+	user := models.GetUserByWSOLogin(dto.AuthorizedUser)
+	if user.Name == "" {
+		errorResponse := response.NewErrorResponse("fail", dto.AuthorizedUser+" not found")
+		return errorResponse.Serialize()
+	}
+
+	successResponse := response.NewSuccessResponse("success", user)
+	return successResponse.Serialize()
 }
