@@ -9,6 +9,9 @@ import (
 	"net/http"
 	"time"
 	"log"
+	"sauth/configuration"
+	"sauth/utils"
+	"errors"
 )
 
 // Request struct
@@ -112,7 +115,6 @@ type SOAPFault struct {
 	Actor  string `xml:"faultactor,omitempty"`
 	Detail string `xml:"detail,omitempty"`
 }
-
 
 var timeout = time.Duration(30 * time.Second)
 
@@ -253,4 +255,25 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 	}
 
 	return nil
+}
+
+func GetUserByToken(token string, config configuration.SoapConfig) (string, error) {
+	auth := BasicAuth{Login: config.User, Password: config.Password}
+	soapClient := NewSOAPClient(config.Host, true, &auth)
+	request := FindOAuthConsumerIfTokenIsValid{
+		XMLName: xml.Name{},
+		ValidationReqDTO: &OAuth2TokenValidationRequestDTO{
+			XMLName: xml.Name{},
+			AccessToken: &OAuth2TokenValidationRequestDTOOAuth2AccessToken{
+				XMLName:    xml.Name{},
+				Identifier: token,
+				TokenType:  "bearer"}}}
+	wsoResponse := FindOAuthConsumerIfTokenIsValidResponse{}
+	err := soapClient.Call("FindOAuthConsumerIfTokenIsValid", &request, &wsoResponse)
+	utils.CheckError(err)
+	validationResponse := wsoResponse.Return_.AccessTokenValidationResponse
+	if validationResponse.ErrorMsg != "" {
+		return "", errors.New(validationResponse.ErrorMsg)
+	}
+	return validationResponse.AuthorizedUser, nil
 }

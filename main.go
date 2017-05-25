@@ -6,12 +6,9 @@ import (
 	"sauth/utils"
 	"sauth/configuration"
 	"sauth/soapservice"
-	"encoding/xml"
 	"os"
 	"log"
 	"sauth/response"
-	"sauth/models"
-	"sauth/db"
 )
 
 func main() {
@@ -20,22 +17,8 @@ func main() {
 	setLogFile()
 
 	config := configuration.GetConfig()
-	auth := soapservice.BasicAuth{Login: config.Soap.User, Password: config.Soap.Password}
-	soapClient := soapservice.NewSOAPClient(config.Soap.Host, true, &auth)
-	request := soapservice.FindOAuthConsumerIfTokenIsValid{
-		XMLName: xml.Name{},
-		ValidationReqDTO: &soapservice.OAuth2TokenValidationRequestDTO{
-			XMLName: xml.Name{},
-			AccessToken: &soapservice.OAuth2TokenValidationRequestDTOOAuth2AccessToken{
-				XMLName:    xml.Name{},
-				Identifier: token,
-				TokenType:  "bearer"}}}
-	wsoResponse := soapservice.FindOAuthConsumerIfTokenIsValidResponse{}
-	err = soapClient.Call("FindOAuthConsumerIfTokenIsValid", &request, &wsoResponse)
-	utils.CheckError(err)
-
-	validationResponse := wsoResponse.Return_.AccessTokenValidationResponse
-	println(generateJsonResponse(validationResponse))
+	wsoLogin, err := soapservice.GetUserByToken(token, config.Soap)
+	println(response.GenerateJsonResponse(wsoLogin, err))
 }
 
 func getToken() (string, error) {
@@ -54,26 +37,4 @@ func setLogFile() error {
 	}
 	log.SetOutput(f)
 	return nil
-}
-
-func generateJsonResponse(dto *soapservice.OAuth2TokenValidationResponseDTO) string {
-	if dto.ErrorMsg != "" {
-		return generateErrorJson(dto.ErrorMsg)
-	} else {
-		user := db.GetUserByWSOLogin(dto.AuthorizedUser)
-		if user.Name == "" {
-			return generateErrorJson(dto.AuthorizedUser + " not found")
-		}
-		return generateSuccessJson(user)
-	}
-}
-
-func generateErrorJson(errorMsg string) string {
-	errorResponse := response.NewErrorResponse("fail", errorMsg)
-	return errorResponse.Serialize()
-}
-
-func generateSuccessJson(user models.User) string {
-	successResponse := response.NewSuccessResponse("success", user)
-	return successResponse.Serialize()
 }
