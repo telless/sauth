@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"time"
-	"log"
 	"sauth/configuration"
 	"sauth/utils"
 	"errors"
@@ -200,7 +199,7 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 		return err
 	}
 
-	log.Println("wso auth request: " + buffer.String())
+	//log.Println("wso auth request: " + buffer.String())
 
 	req, err := http.NewRequest("POST", s.url, buffer)
 	if err != nil {
@@ -237,11 +236,11 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 		return err
 	}
 	if len(rawBody) == 0 {
-		log.Println("empty response")
+		//log.Println("empty response")
 		return nil
 	}
 
-	log.Println("wso auth response: " + string(rawBody))
+	//log.Println("wso auth response: " + string(rawBody))
 	respEnvelope := new(SOAPEnvelope)
 	respEnvelope.Body = SOAPBody{Content: response}
 	err = xml.Unmarshal(rawBody, respEnvelope)
