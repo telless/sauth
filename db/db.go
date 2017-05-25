@@ -10,20 +10,19 @@ import (
 
 var connection *sql.DB
 
-func OpenConnection(config configuration.DBConfig) {
-	conn, err := sql.Open("mysql", formatDbConnectString(config))
-	utils.CheckError(err)
-
-	connection = conn
-}
-
 func GetConnection() *sql.DB {
 	if connection == nil {
-		OpenConnection(configuration.GetConfig().DB)
+		openConnection(configuration.GetConfig().DB)
 	}
 	return connection
 }
 
+func RestartConnection() {
+	if connection != nil {
+		connection.Close()
+	}
+	openConnection(configuration.GetConfig().DB)
+}
 func formatDbConnectString(dbConfig configuration.DBConfig) string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
 		dbConfig.User,
@@ -31,4 +30,11 @@ func formatDbConnectString(dbConfig configuration.DBConfig) string {
 		dbConfig.Host,
 		dbConfig.Port,
 		dbConfig.Name)
+}
+
+func openConnection(config configuration.DBConfig) {
+	conn, err := sql.Open("mysql", formatDbConnectString(config))
+	utils.CheckError(err)
+
+	connection = conn
 }
