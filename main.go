@@ -11,6 +11,7 @@ import (
 	"log"
 	"sauth/response"
 	"sauth/models"
+	"sauth/db"
 )
 
 func main() {
@@ -59,7 +60,7 @@ func generateJsonResponse(dto *soapservice.OAuth2TokenValidationResponseDTO) str
 	if dto.ErrorMsg != "" {
 		return generateErrorJson(dto.ErrorMsg)
 	} else {
-		user := models.GetUserByWSOLogin(dto.AuthorizedUser)
+		user := db.GetUserByWSOLogin(dto.AuthorizedUser)
 		if user.Name == "" {
 			return generateErrorJson(dto.AuthorizedUser + " not found")
 		}
