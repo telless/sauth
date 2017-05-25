@@ -3,7 +3,6 @@ package models
 import (
 	"strings"
 	"sauth/db"
-	"fmt"
 	"sauth/utils"
 )
 
@@ -19,7 +18,7 @@ type User struct {
 func GetUserByWSOLogin(wsoLogin string) User {
 	apiUser := User{}
 	email := strings.TrimSuffix(wsoLogin, "@carbon.super") // remove @carbon.super in the end
-	sqlQuery := fmt.Sprintf(`SELECT
+	sqlQuery := `SELECT
   u.id,
   CONCAT_WS(' ', u.last_name, u.first_name, u.middle_name) AS name,
   u.email,
@@ -27,14 +26,16 @@ func GetUserByWSOLogin(wsoLogin string) User {
   u.type,
   u.role
 FROM user AS u
-WHERE email = %q
-LIMIT 1`, email)
+WHERE email = ?
+LIMIT 1`
 
 	connection := db.GetConnection()
 	defer connection.Close()
 
-	result := db.GetConnection().QueryRow(sqlQuery)
-	err := result.Scan(&apiUser.Id,
+	stmt, err := db.GetConnection().Prepare(sqlQuery)
+	utils.CheckError(err)
+	result := stmt.QueryRow(email)
+	err = result.Scan(&apiUser.Id,
 		&apiUser.Name,
 		&apiUser.Email,
 		&apiUser.PartnerId,
