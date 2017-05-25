@@ -9,12 +9,17 @@ import (
 	"os"
 	"log"
 	"sauth/response"
+	"sauth/db"
 )
 
 func main() {
+	setLogFile()
+
 	token, err := getToken()
 	utils.CheckError(err)
-	setLogFile()
+
+	connection := db.GetConnection()
+	defer connection.Close()
 
 	config := configuration.GetConfig()
 	wsoLogin, err := soapservice.GetUserByToken(token, config.Soap)

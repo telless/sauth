@@ -20,9 +20,6 @@ FROM user AS u
 WHERE email = ?
 LIMIT 1`
 
-	connection := GetConnection()
-	defer connection.Close()
-
 	stmt, err := GetConnection().Prepare(sqlQuery)
 	utils.CheckError(err)
 	result := stmt.QueryRow(email)
