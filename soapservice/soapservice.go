@@ -10,8 +10,15 @@ import (
 	"time"
 	"sauth/configuration"
 	"sauth/utils"
-	"errors"
 )
+
+type SOAPUser struct {
+	WsoLogin   string
+	ExpireTime int64
+	Token      string
+	Valid      bool
+	ErrorMsg   string
+}
 
 // Request struct
 
@@ -256,7 +263,7 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 	return nil
 }
 
-func GetUserByToken(token string, config configuration.SoapConfig) (string, error) {
+func GetUserByToken(token string, config configuration.SoapConfig) (SOAPUser) {
 	auth := BasicAuth{Login: config.User, Password: config.Password}
 	soapClient := NewSOAPClient(config.Host, true, &auth)
 	request := FindOAuthConsumerIfTokenIsValid{
@@ -271,8 +278,11 @@ func GetUserByToken(token string, config configuration.SoapConfig) (string, erro
 	err := soapClient.Call("FindOAuthConsumerIfTokenIsValid", &request, &wsoResponse)
 	utils.CheckError(err)
 	validationResponse := wsoResponse.Return_.AccessTokenValidationResponse
-	if validationResponse.ErrorMsg != "" {
-		return "", errors.New(validationResponse.ErrorMsg)
+	return SOAPUser{
+		WsoLogin:   validationResponse.AuthorizedUser,
+		ExpireTime: validationResponse.ExpiryTime,
+		Token:      token,
+		Valid:      validationResponse.Valid,
+		ErrorMsg:   validationResponse.ErrorMsg,
 	}
-	return validationResponse.AuthorizedUser, nil
 }

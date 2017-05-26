@@ -22,8 +22,17 @@ func main() {
 	defer connection.Close()
 
 	config := configuration.GetConfig()
-	wsoLogin, err := soapservice.GetUserByToken(token, config.Soap)
-	println(response.GenerateJsonResponse(wsoLogin, err))
+	soapUser := soapservice.GetUserByToken(token, config.Soap)
+	if soapUser.ErrorMsg == "" {
+		user := db.GetUserByWSOLogin(soapUser.WsoLogin)
+		if user.Name == "" {
+			println(response.GenerateErrorJson(soapUser.WsoLogin + " not found"))
+		} else {
+			println(response.GenerateSuccessJson(user))
+		}
+	} else {
+		println(response.GenerateErrorJson(soapUser.ErrorMsg))
+	}
 }
 
 func getToken() (string, error) {

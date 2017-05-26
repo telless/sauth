@@ -3,7 +3,6 @@ package response
 import (
 	"encoding/json"
 	"sauth/models"
-	"sauth/db"
 )
 
 type BaseResponse interface {
@@ -38,25 +37,12 @@ func (success *successResponse) Serialize() string {
 	return string(jsonData)
 }
 
-
-func GenerateJsonResponse(wsoLogin string, err error) string {
-	if err != nil {
-		return generateErrorJson(err.Error())
-	} else {
-		user := db.GetUserByWSOLogin(wsoLogin)
-		if user.Name == "" {
-			return generateErrorJson(wsoLogin + " not found")
-		}
-		return generateSuccessJson(user)
-	}
-}
-
-func generateErrorJson(errorMsg string) string {
+func GenerateErrorJson(errorMsg string) string {
 	errorResponse := NewErrorResponse("fail", errorMsg)
 	return errorResponse.Serialize()
 }
 
-func generateSuccessJson(user models.User) string {
+func GenerateSuccessJson(user models.User) string {
 	successResponse := NewSuccessResponse("success", user)
 	return successResponse.Serialize()
 }
