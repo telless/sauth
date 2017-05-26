@@ -13,11 +13,11 @@ import (
 )
 
 type SOAPUser struct {
-	WsoLogin   string
-	ExpireTime int64
-	Token      string
-	Valid      bool
-	ErrorMsg   string
+	WsoLogin   string `json:"wso_login"`
+	ExpireTime int64 `json:"expire_time"`
+	Token      string `json:"token"`
+	Valid      bool `json:"valid"`
+	ErrorMsg   string `json:"error_msg"`
 }
 
 // Request struct
