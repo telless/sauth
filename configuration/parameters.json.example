@@ -9,6 +9,7 @@
     "port": 3306,
     "name": "db",
     "user": "user",
-    "password": "password"
+    "password": "password",
+    "cache_expire": 9000
   }
 }

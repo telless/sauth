@@ -18,6 +18,7 @@ type DBConfig struct {
 	Name     string `json:"name"`
 	User     string `json:"user"`
 	Password string `json:"password"`
+	Expire   int `json:"cache_expire"`
 }
 type SoapConfig struct {
 	Host     string `json:"host"`
