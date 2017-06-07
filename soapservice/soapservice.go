@@ -10,11 +10,12 @@ import (
 	"time"
 	"sauth/configuration"
 	"sauth/utils"
+	"log"
 )
 
 type SOAPUser struct {
 	WsoLogin   string `json:"wso_login"`
-	ExpireTime int64 `json:"expire_time"`
+	ExpireTime time.Time `json:"expire_time"`
 	Token      string `json:"token"`
 	Valid      bool `json:"valid"`
 	ErrorMsg   string `json:"error_msg"`
@@ -206,7 +207,7 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 		return err
 	}
 
-	//log.Println("wso auth request: " + buffer.String())
+	log.Println("wso auth request: " + buffer.String())
 
 	req, err := http.NewRequest("POST", s.url, buffer)
 	if err != nil {
@@ -247,7 +248,7 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 		return nil
 	}
 
-	//log.Println("wso auth response: " + string(rawBody))
+	log.Println("wso auth response: " + string(rawBody))
 	respEnvelope := new(SOAPEnvelope)
 	respEnvelope.Body = SOAPBody{Content: response}
 	err = xml.Unmarshal(rawBody, respEnvelope)
@@ -280,7 +281,7 @@ func GetUserByToken(token string, config configuration.SoapConfig) (SOAPUser) {
 	validationResponse := wsoResponse.Return_.AccessTokenValidationResponse
 	return SOAPUser{
 		WsoLogin:   validationResponse.AuthorizedUser,
-		ExpireTime: validationResponse.ExpiryTime,
+		ExpireTime: time.Now().Add(time.Duration(validationResponse.ExpiryTime) * time.Second),
 		Token:      token,
 		Valid:      validationResponse.Valid,
 		ErrorMsg:   validationResponse.ErrorMsg,
