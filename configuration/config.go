@@ -5,7 +5,7 @@ import (
 	"sauth/utils"
 )
 
-const config_path string = "configuration/parameters.json"
+const config_path string = "parameters.json"
 
 type Config struct {
 	DB   DBConfig `json:"db"`

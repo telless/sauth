@@ -1,4 +1,4 @@
-package soapservice
+package services
 
 import (
 	"bytes"
@@ -24,13 +24,13 @@ type SOAPUser struct {
 // Request struct
 
 type FindOAuthConsumerIfTokenIsValid struct {
-	XMLName xml.Name `xml:"http://org.apache.axis2/xsd findOAuthConsumerIfTokenIsValid"`
+	XMLName          xml.Name `xml:"http://org.apache.axis2/xsd findOAuthConsumerIfTokenIsValid"`
 
 	ValidationReqDTO *OAuth2TokenValidationRequestDTO `xml:"validationReqDTO,omitempty"`
 }
 
 type OAuth2TokenValidationRequestDTO struct {
-	XMLName xml.Name `xml:"http://dto.oauth2.identity.carbon.wso2.org/xsd validationReqDTO"`
+	XMLName           xml.Name `xml:"http://dto.oauth2.identity.carbon.wso2.org/xsd validationReqDTO"`
 
 	AccessToken       *OAuth2TokenValidationRequestDTOOAuth2AccessToken             `xml:"accessToken,omitempty"`
 	Context           []*OAuth2TokenValidationRequestDTOTokenValidationContextParam `xml:"context,omitempty"`
@@ -38,7 +38,7 @@ type OAuth2TokenValidationRequestDTO struct {
 }
 
 type OAuth2TokenValidationRequestDTOOAuth2AccessToken struct {
-	XMLName xml.Name `xml:"http://dto.oauth2.identity.carbon.wso2.org/xsd accessToken"`
+	XMLName    xml.Name `xml:"http://dto.oauth2.identity.carbon.wso2.org/xsd accessToken"`
 
 	Identifier string `xml:"identifier,omitempty"`
 	TokenType  string `xml:"tokenType,omitempty"`
@@ -47,8 +47,8 @@ type OAuth2TokenValidationRequestDTOOAuth2AccessToken struct {
 type OAuth2TokenValidationRequestDTOTokenValidationContextParam struct {
 	XMLName xml.Name `xml:"http://dto.oauth2.identity.carbon.wso2.org/xsd OAuth2TokenValidationRequestDTO_TokenValidationContextParam"`
 
-	Key   string `xml:"key,omitempty"`
-	Value string `xml:"value,omitempty"`
+	Key     string `xml:"key,omitempty"`
+	Value   string `xml:"value,omitempty"`
 }
 
 // Response struct
@@ -60,14 +60,14 @@ type FindOAuthConsumerIfTokenIsValidResponse struct {
 }
 
 type OAuth2ClientApplicationDTO struct {
-	XMLName xml.Name `xml:"http://org.apache.axis2/xsd return"`
+	XMLName                       xml.Name `xml:"http://org.apache.axis2/xsd return"`
 
 	AccessTokenValidationResponse *OAuth2TokenValidationResponseDTO `xml:"accessTokenValidationResponse,omitempty"`
 	ConsumerKey                   string                            `xml:"consumerKey,omitempty"`
 }
 
 type OAuth2TokenValidationResponseDTO struct {
-	XMLName xml.Name `xml:"http://dto.oauth2.identity.carbon.wso2.org/xsd accessTokenValidationResponse"`
+	XMLName                   xml.Name `xml:"http://dto.oauth2.identity.carbon.wso2.org/xsd accessTokenValidationResponse"`
 
 	AuthorizationContextToken *OAuth2TokenValidationResponseDTOAuthorizationContextToken `xml:"authorizationContextToken,omitempty"`
 	AuthorizedUser            string                                                     `xml:"authorizedUser,omitempty"`
@@ -78,7 +78,7 @@ type OAuth2TokenValidationResponseDTO struct {
 }
 
 type OAuth2TokenValidationResponseDTOAuthorizationContextToken struct {
-	XMLName xml.Name `xml:"http://dto.oauth2.identity.carbon.wso2.org/xsd authorizationContextToken"`
+	XMLName     xml.Name `xml:"http://dto.oauth2.identity.carbon.wso2.org/xsd authorizationContextToken"`
 
 	TokenString string `xml:"tokenString,omitempty"`
 	TokenType   string `xml:"tokenType,omitempty"`
@@ -104,7 +104,7 @@ type BasicAuth struct {
 type SOAPEnvelope struct {
 	XMLName xml.Name `xml:"http://schemas.xmlsoap.org/soap/envelope/ Envelope"`
 
-	Body SOAPBody
+	Body    SOAPBody
 }
 
 type SOAPBody struct {
@@ -117,10 +117,10 @@ type SOAPBody struct {
 type SOAPFault struct {
 	XMLName xml.Name `xml:"http://schemas.xmlsoap.org/soap/envelope/ Fault"`
 
-	Code   string `xml:"faultcode,omitempty"`
-	String string `xml:"faultstring,omitempty"`
-	Actor  string `xml:"faultactor,omitempty"`
-	Detail string `xml:"detail,omitempty"`
+	Code    string `xml:"faultcode,omitempty"`
+	String  string `xml:"faultstring,omitempty"`
+	Actor   string `xml:"faultactor,omitempty"`
+	Detail  string `xml:"detail,omitempty"`
 }
 
 var timeout = time.Duration(30 * time.Second)
@@ -135,12 +135,12 @@ func (b *SOAPBody) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	}
 
 	var (
-		token    xml.Token
-		err      error
+		token xml.Token
+		err error
 		consumed bool
 	)
 
-Loop:
+	Loop:
 	for {
 		if token, err = d.Token(); err != nil {
 			return err
@@ -207,7 +207,7 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 		return err
 	}
 
-	log.Println("wso auth request: " + buffer.String())
+	log.Println("WSO request: " + buffer.String())
 
 	req, err := http.NewRequest("POST", s.url, buffer)
 	if err != nil {
@@ -222,7 +222,7 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 		req.Header.Add("SOAPAction", soapAction)
 	}
 
-	req.Header.Set("User-Agent", "gowsdl/0.1")
+	req.Header.Set("User-Agent", "sauth/1.0")
 	req.Close = true
 
 	tr := &http.Transport{
@@ -248,7 +248,7 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 		return nil
 	}
 
-	log.Println("wso auth response: " + string(rawBody))
+	log.Println("WSO response: " + string(rawBody))
 	respEnvelope := new(SOAPEnvelope)
 	respEnvelope.Body = SOAPBody{Content: response}
 	err = xml.Unmarshal(rawBody, respEnvelope)
@@ -277,7 +277,7 @@ func GetUserByToken(token string, config configuration.SoapConfig) (SOAPUser) {
 				TokenType:  "bearer"}}}
 	wsoResponse := FindOAuthConsumerIfTokenIsValidResponse{}
 	err := soapClient.Call("FindOAuthConsumerIfTokenIsValid", &request, &wsoResponse)
-	utils.CheckError(err)
+	utils.CheckError(err, "soap call error", utils.FatalLogLevel)
 	validationResponse := wsoResponse.Return_.AccessTokenValidationResponse
 	return SOAPUser{
 		WsoLogin:   validationResponse.AuthorizedUser,

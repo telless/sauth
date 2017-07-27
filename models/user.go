@@ -6,13 +6,13 @@ import (
 )
 
 type User struct {
-	Id        int `json:"id"`
-	Name      string `json:"name"`
-	Email     string `json:"email"`
-	PartnerId int `json:"partner_id"`
-	Type      string `json:"type"`
-	Role      int `json:"role"`
-	Expire    time.Time `json:"expire"`
+	Id        int `json:"id,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Email     string `json:"email,omitempty"`
+	PartnerId int `json:"partner_id,omitempty"`
+	Type      string `json:"type,omitempty"`
+	Role      int `json:"role,omitempty"`
+	Expire    time.Time `json:"expire,omitempty"`
 }
 
 func (user *User) Serialize() string {
@@ -21,4 +21,15 @@ func (user *User) Serialize() string {
 		return ""
 	}
 	return string(jsonData)
+}
+
+func (d *User) MarshalJSON() ([]byte, error) {
+	type Alias User
+	return json.Marshal(&struct {
+		*Alias
+		Expire string `json:"expire"`
+	}{
+		Alias: (*Alias)(d),
+		Expire: d.Expire.Format("2006-01-02 15:04:05"),
+	})
 }

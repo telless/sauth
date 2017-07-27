@@ -1,3 +1,6 @@
-configuration/parameters.json
-logs/*.log
-*.bin
+parameters.json
+!parameters.json.example
+logs/*
+!logs/.gitkeep
+bin/*
+!bin/.gitkeep

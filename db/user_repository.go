@@ -7,7 +7,7 @@ import (
 )
 
 func GetUserByWSOLogin(wsoLogin string) models.User {
-	apiUser := models.User{}
+	user := models.User{}
 	email := strings.TrimSuffix(wsoLogin, "@carbon.super") // remove @carbon.super in the end
 	sqlQuery := `SELECT
   u.id,
@@ -19,18 +19,17 @@ func GetUserByWSOLogin(wsoLogin string) models.User {
 FROM user AS u
 WHERE email = ?
 LIMIT 1`
-
 	stmt, err := GetConnection().Prepare(sqlQuery)
-	utils.CheckError(err)
+	utils.CheckError(err, "prepare sql query", utils.FatalLogLevel)
 	result := stmt.QueryRow(email)
-	err = result.Scan(&apiUser.Id,
-		&apiUser.Name,
-		&apiUser.Email,
-		&apiUser.PartnerId,
-		&apiUser.Type,
-		&apiUser.Role)
+	err = result.Scan(&user.Id,
+		&user.Name,
+		&user.Email,
+		&user.PartnerId,
+		&user.Type,
+		&user.Role)
 
-	utils.CheckError(err)
+	utils.CheckError(err, "parse sql response", utils.FatalLogLevel)
 
-	return apiUser
+	return user
 }

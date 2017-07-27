@@ -34,7 +34,7 @@ func formatDbConnectString(dbConfig configuration.DBConfig) string {
 
 func openConnection(config configuration.DBConfig) {
 	conn, err := sql.Open("mysql", formatDbConnectString(config))
-	utils.CheckError(err)
+	utils.CheckError(err, "db connection", utils.FatalLogLevel)
 
 	connection = conn
 }
