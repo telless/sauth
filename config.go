@@ -1,18 +1,17 @@
-package configuration
+package main
 
 import (
 	"encoding/json"
-	"sauth/utils"
 )
 
 const config_path string = "parameters.json"
 
-type Config struct {
-	DB   DBConfig `json:"db"`
-	Soap SoapConfig `json:"soap"`
+type baseConfig struct {
+	Db   dbConfig `json:"db"`
+	Soap soapConfig `json:"soap"`
 }
 
-type DBConfig struct {
+type dbConfig struct {
 	Host     string `json:"host"`
 	Port     int `json:"port"`
 	Name     string `json:"name"`
@@ -20,15 +19,16 @@ type DBConfig struct {
 	Password string `json:"password"`
 	Expire   int `json:"cache_expire"`
 }
-type SoapConfig struct {
+type soapConfig struct {
 	Host     string `json:"host"`
 	User     string `json:"user"`
 	Password string `json:"password"`
 }
 
-func GetConfig() Config {
-	config := Config{}
-	file := utils.GetFileContent(config_path)
+func getConfig() baseConfig {
+	config := baseConfig{}
+	file := getFileContent(config_path)
 	json.Unmarshal(file, &config)
+
 	return config
 }

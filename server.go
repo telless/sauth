@@ -1,43 +1,20 @@
 package main
 
 import (
-	"sauth/db"
 	"net"
-	"os"
 	"fmt"
-	"os/signal"
-	"syscall"
-	"sauth/utils"
-	"sauth/models"
-	"sauth/services"
-	"strings"
-	"errors"
 	"time"
 	"strconv"
+	"errors"
+	"strings"
 )
 
 var (
-	soapUsersCache = make(map[string]services.SOAPUser)
-	dbUsersCache   = make(map[string]models.User)
+	soapUsersCache = make(map[string]soapUser)
+	dbUsersCache   = make(map[string]apiUser)
 )
 
-func serve(sockFile string) (error) {
-	os.Remove(sockFile)
-	listener, err := net.Listen("unix", sockFile)
-	if err != nil {
-		return err
-	}
-	utils.Log(fmt.Sprintf("Serve started on %s", sockFile))
-
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-	go func(ln net.Listener, c chan os.Signal) {
-		sig := <-c
-		ln.Close()
-		os.Remove(sockFile)
-		utils.Die(fmt.Sprintf("Caught signal %s: shutting down.", sig))
-	}(listener, signals)
-
+func startServer(listener net.Listener) (error) {
 	for {
 		connection, err := listener.Accept()
 		if err != nil {
@@ -51,76 +28,55 @@ func serve(sockFile string) (error) {
 }
 
 func handler(connection net.Conn) {
-	dbCheck()
+	defer connection.Close()
+
 	buf := make([]byte, 512)
 
 	n, err := connection.Read(buf)
-	utils.CheckError(err, "read inc message", utils.FatalLogLevel)
+	checkError(err, "Read inc message", fatalLogLevel)
 	requestData := string(buf[0:n])
-	utils.Log(fmt.Sprintln("Server got:", requestData))
-	responseData, err := handleRequest(requestData)
+	logMessage(fmt.Sprintln("Server got:", requestData))
+	responseData, err := handleRequest(strings.TrimRight(requestData, " \r\n\t"))
 	if err != nil {
-		utils.CheckError(err, "handle inc request "+requestData, utils.LowLogLevel)
+		checkError(err, "Handle inc request "+requestData, minorLogLevel)
 		responseData = err.Error()
 	}
 	_, err = connection.Write([]byte(responseData))
-	utils.CheckError(err, "write response "+responseData, utils.FatalLogLevel)
+	checkError(err, "Write response "+responseData, fatalLogLevel)
 
-	utils.Log(fmt.Sprintln("Server send:", responseData))
+	logMessage(fmt.Sprintln("Server send:", responseData))
 }
 
-func dbCheck() {
-	err := db.GetConnection().Ping()
-	if err != nil {
-		db.RestartConnection()
-	}
-}
-
-func handleRequest(requestData string) (string, error) {
-	responseData, err := parseToken(requestData)
-	if err != nil {
-		return "", err
-	}
-
-	return responseData, nil
-}
-
-func parseToken(token string) (string, error) {
-	const prefix = "Bearer "
-	if !strings.HasPrefix(token, prefix) {
-		return "", errors.New("Bearer token required for authorization")
-	}
-
-	return getUser(strings.TrimRight(token[len(prefix):], " \r\n\t"))
-}
-
-func getUser(parsedToken string) (string, error) {
-	user := soapUsersCache[parsedToken]
-	if user.WsoLogin == "" || user.ExpireTime.Before(time.Now()) {
-		user = services.GetUserByToken(parsedToken, config.Soap)
-		soapUsersCache[parsedToken] = user
+func handleRequest(parsedToken string) (string, error) {
+	soapUser := soapUsersCache[parsedToken]
+	if soapUser.WsoLogin == "" || soapUser.ExpireTime.Before(time.Now()) {
+		soapUser = getUserByToken(parsedToken, config.Soap)
+		soapUsersCache[parsedToken] = soapUser
 	} else {
-		logMsg := fmt.Sprintf("Get WSO user %s from cache, expire in %s seconds",
-			user.WsoLogin,
-			strconv.FormatFloat(user.ExpireTime.Sub(time.Now()).Seconds(), 'f', 0, 64))
-		utils.Log(logMsg)
+		logMessage(fmt.Sprintf("Get WSO soapUser %s from cache, expire in %s seconds",
+			soapUser.WsoLogin,
+			strconv.FormatFloat(soapUser.ExpireTime.Sub(time.Now()).Seconds(), 'f', 0, 64)))
 	}
-	if user.ErrorMsg != "" {
-		emptyUser := models.User{}
-		return emptyUser.Serialize(), errors.New(fmt.Sprintf("WSO user not found, error: %s, token: %s", user.ErrorMsg, parsedToken))
+	if soapUser.ErrorMsg != "" {
+		return "", errors.New(fmt.Sprintf("WSO soapUser not found, error: %s, token: %s", soapUser.ErrorMsg, parsedToken))
 	}
-
-	dbUser := dbUsersCache[user.WsoLogin]
-	if dbUser.Name == "" || dbUser.Expire.Before(time.Now()) {
-		dbUser = db.GetUserByWSOLogin(user.WsoLogin)
-		dbUser.Expire = time.Now().Add(time.Duration(config.DB.Expire) * time.Second)
-		dbUsersCache[user.WsoLogin] = dbUser
+	if soapUser.ExpireTime.Before(time.Now()) {
+		return "", errors.New(fmt.Sprintf("WSO token %s expired", parsedToken))
+	}
+	apiUser := dbUsersCache[soapUser.WsoLogin]
+	if apiUser.Name == "" || apiUser.Expire.Before(time.Now()) {
+		var err error = nil
+		apiUser, err = getUserByWSOLogin(soapUser.WsoLogin)
+		if err != nil {
+			return "", errors.New(fmt.Sprintf("User %s not found in DB", soapUser.WsoLogin))
+		}
+		apiUser.Expire = time.Now().Add(time.Duration(config.Db.Expire) * time.Second)
+		apiUser.TokenExpire = soapUser.ExpireTime
+		dbUsersCache[soapUser.WsoLogin] = apiUser
 	} else {
-		logMsg := fmt.Sprintf("Get API user %s from cache, expire in %s seconds",
-			user.WsoLogin,
-			strconv.FormatFloat(dbUser.Expire.Sub(time.Now()).Seconds(), 'f', 0, 64))
-		utils.Log(logMsg)
+		logMessage(fmt.Sprintf("Get API soapUser %s from cache, expire in %s seconds",
+			soapUser.WsoLogin,
+			strconv.FormatFloat(apiUser.Expire.Sub(time.Now()).Seconds(), 'f', 0, 64)))
 	}
-
-	return dbUser.Serialize(), nil
+	return apiUser.Serialize(), nil
 }
