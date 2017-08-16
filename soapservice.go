@@ -278,7 +278,7 @@ func (s *soapClient) call(soapAction string, request, response interface{}) erro
 }
 
 func getUserByToken(tokenString string, config soapConfig) (soapUser) {
-	token:=prepareToken(tokenString)
+	token := prepareToken(tokenString)
 	auth := basicAuth{Login: config.User, Password: config.Password}
 	soapClient := newSoapClient(config.Host, true, &auth)
 	request := findOAuthConsumerIfTokenIsValid{
@@ -304,8 +304,7 @@ func getUserByToken(tokenString string, config soapConfig) (soapUser) {
 
 func prepareToken(tokenString string) authToken {
 	data := strings.Split(tokenString, " ");
-
 	return authToken{
-		tokenType: data[0],
+		tokenType:        data[0],
 		tokenCredentials: data[1]}
 }

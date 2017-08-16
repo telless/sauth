@@ -7,14 +7,14 @@ import (
 )
 
 type apiUser struct {
-	Id        int `json:"id,omitempty"`
-	Name      string `json:"name,omitempty"`
-	Email     string `json:"email,omitempty"`
-	PartnerId int `json:"partnerId,omitempty"`
-	Type      string `json:"type,omitempty"`
-	Role      int `json:"role,omitempty"`
-	Expire    time.Time `json:"dataExpire,omitempty"`
-	TokenExpire    time.Time `json:"tokenExpire,omitempty"`
+	Id          int `json:"id,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Email       string `json:"email,omitempty"`
+	PartnerId   int `json:"partnerId,omitempty"`
+	Type        string `json:"type,omitempty"`
+	Role        int `json:"role,omitempty"`
+	Expire      time.Time `json:"dataExpire,omitempty"`
+	TokenExpire time.Time `json:"tokenExpire,omitempty"`
 }
 
 func (user *apiUser) Serialize() string {
@@ -32,11 +32,11 @@ func (d *apiUser) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(&struct {
 		*Alias
-		Expire string `json:"dataExpire"`
+		Expire      string `json:"dataExpire"`
 		TokenExpire string `json:"tokenExpire"`
 	}{
-		Alias:  (*Alias)(d),
-		Expire: d.Expire.Format(projectTimeFormat),
+		Alias:       (*Alias)(d),
+		Expire:      d.Expire.Format(projectTimeFormat),
 		TokenExpire: d.TokenExpire.Format(projectTimeFormat),
 	})
 }
